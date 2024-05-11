@@ -264,6 +264,8 @@ googleapis-common-protos==1.60.0
     # via
     #   google-api-core
     #   grpcio-status
+greenlet==3.0.3
+    # via sqlalchemy
 grpcio==1.57.0
     # via
     #   google-api-core
@@ -614,7 +616,7 @@ tomlkit==0.12.3
     #   snowflake-connector-python
 toronado==0.1.0
     # via -r requirements.in
-tqdm==4.64.1
+tqdm==4.66.3
     # via openai
 trio==0.20.0
     # via
