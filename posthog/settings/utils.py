@@ -36,6 +36,4 @@ def get_list(text: str) -> list[str]:
 
 
 def get_set(text: str) -> set[str]:
-    if not text:
-        return set()
-    return {item.strip() for item in text.split(",")}
+    return set() if not text else set(map(str.strip, text.split(",")))
