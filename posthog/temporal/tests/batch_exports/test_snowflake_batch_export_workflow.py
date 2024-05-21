@@ -1,3 +1,4 @@
+from snowflake.connector.constants import QueryStatus
 import asyncio
 import datetime as dt
 import gzip
@@ -122,7 +123,7 @@ class FakeSnowflakeConnection:
         return cursor
 
     def get_query_status_throw_if_error(self, query_id):
-        return snowflake.connector.constants.QueryStatus.SUCCESS
+        return QueryStatus.SUCCESS
 
     def is_still_running(self, status):
         current_status = self._is_running
