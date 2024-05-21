@@ -125,9 +125,9 @@ class FakeSnowflakeConnection:
         return snowflake.connector.constants.QueryStatus.SUCCESS
 
     def is_still_running(self, status):
-        current_status = self._is_running
-        self._is_running = not current_status
-        return current_status
+        previous_status = self._is_running
+        self._is_running = not previous_status
+        return previous_status
 
     def __enter__(self):
         return self
