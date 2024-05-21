@@ -1,5 +1,3 @@
-import re
-
 from django.conf import settings
 from django.template import Library
 
@@ -53,4 +51,8 @@ def strip_protocol(path: str) -> str:
       {% strip_protocol 'https://app.posthog.com' %}
       =>  "app.posthog.com"
     """
-    return re.sub(r"https?:\/\/", "", path)
+    # Remove 'http://'
+    path = path.replace("http://", "")
+    # Remove 'https://'
+    path = path.replace("https://", "")
+    return path
