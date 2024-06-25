@@ -5,22 +5,36 @@ import re
 import json
 
 from .print import print_hog_string_output
+from posthog.models import Team
 
 if TYPE_CHECKING:
     from posthog.models import Team
 
 
-def concat(name: str, args: list[Any], team: Optional["Team"], stdout: Optional[list[str]], timeout: int):
-    def _to_concat_arg(arg) -> str:
-        if arg is None:
-            return ""
-        if arg is True:
-            return "true"
-        if arg is False:
-            return "false"
-        return str(arg)
+def concat(name: str, args: list[Any], team: Optional[Team], stdout: Optional[list[str]], timeout: int) -> str:
+    """Concatenate string representations of arguments.
 
-    return "".join([_to_concat_arg(arg) for arg in args])
+    Parameters
+    ----------
+    name : str
+        The name associated with the concatenation (unused).
+    args : list[Any]
+        A list of arguments to concatenate.
+    team : Optional[Team]
+        Team object (unused).
+    stdout : Optional[list[str]]
+        Standard output (unused).
+    timeout : int
+        Timeout in seconds (unused).
+
+    Returns
+    -------
+    str
+        The concatenated string.
+    """
+    return "".join(
+        ("" if arg is None else "true" if arg is True else "false" if arg is False else str(arg)) for arg in args
+    )
 
 
 def match(name: str, args: list[Any], team: Optional["Team"], stdout: Optional[list[str]], timeout: int):
