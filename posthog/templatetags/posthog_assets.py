@@ -45,12 +45,21 @@ def human_social_providers(providers: list[str]) -> str:
     return ", ".join(map(friendly_provider, providers))
 
 
-@register.simple_tag
 def strip_protocol(path: str) -> str:
+    """Removes the http/https protocol from the given URL.
+
+    Parameters
+    ----------
+    path : str
+        The URL from which the protocol is to be stripped.
+
+    Returns
+    -------
+    str
+        The URL without the http/https protocol.
     """
-    Returns a URL removing the http/https protocol
-    Example:
-      {% strip_protocol 'https://app.posthog.com' %}
-      =>  "app.posthog.com"
-    """
-    return re.sub(r"https?:\/\/", "", path)
+    if path[:7] == "http://":
+        return path[7:]
+    elif path[:8] == "https://":
+        return path[8:]
+    return path
