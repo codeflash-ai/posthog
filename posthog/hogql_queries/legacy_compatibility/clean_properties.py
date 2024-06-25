@@ -74,44 +74,49 @@ def clean_property_group_filter_value(property: dict):
         return clean_property(property)
 
 
-def clean_property(property: dict):
+def clean_property(property: dict[str, object]) -> dict[str, object]:
+    """Clean the property dictionary by applying several corrections.
+
+    Args:
+        property (dict): The property dictionary to clean.
+
+    Returns:
+        dict: The cleaned property dictionary."""
+
+    # Create a copy of the dictionary
     cleaned_property = {**property}
 
-    # fix type typo
-    if cleaned_property.get("type") == "events":
-        cleaned_property["type"] = "event"
+    # Transformations and clean-up steps
+    type_corrections = {"events": "event", "precalculated-cohort": "cohort", "static-cohort": "cohort"}
 
-    # fix value key typo
+    if cleaned_property.get("type") in type_corrections:
+        cleaned_property["type"] = type_corrections[cleaned_property.get("type")]
+
     if cleaned_property.get("values") is not None and cleaned_property.get("value") is None:
         cleaned_property["value"] = cleaned_property.pop("values")
 
-    # convert precalculated and static cohorts to cohorts
-    if cleaned_property.get("type") in ("precalculated-cohort", "static-cohort"):
-        cleaned_property["type"] = "cohort"
-
-    # fix invalid property key for cohorts
     if cleaned_property.get("type") == "cohort" and cleaned_property.get("key") != "id":
         cleaned_property["key"] = "id"
 
-    # set a default operator for properties that support it, but don't have an operator set
     if is_property_with_operator(cleaned_property) and cleaned_property.get("operator") is None:
         cleaned_property["operator"] = "exact"
-
-    # remove the operator for properties that don't support it, but have it set
-    if not is_property_with_operator(cleaned_property) and cleaned_property.get("operator") is not None:
+    elif not is_property_with_operator(cleaned_property) and cleaned_property.get("operator") is not None:
         del cleaned_property["operator"]
 
-    # remove none from values
     if isinstance(cleaned_property.get("value"), list):
-        cleaned_property["value"] = list(filter(lambda x: x is not None, cleaned_property.get("value")))  # type: ignore
+        cleaned_property["value"] = [v for v in cleaned_property.get("value") if v is not None]
 
-    # remove keys without concrete value
-    cleaned_property = {key: value for key, value in cleaned_property.items() if value is not None}
-
-    return cleaned_property
+    return {k: v for k, v in cleaned_property.items() if v is not None}
 
 
-def is_property_with_operator(property: dict):
+def is_property_with_operator(property: dict[str, object]) -> bool:
+    """Check if a property dictionary requires an operator.
+
+    Args:
+        property (dict): The property dictionary to check.
+
+    Returns:
+        bool: True if the property type needs an operator."""
     return property.get("type") not in ("cohort", "hogql")
 
 
@@ -132,3 +137,14 @@ def transform_old_style_properties(properties):
             "type": "event",
         }
     ]
+
+
+def is_property_with_operator(property: dict[str, object]) -> bool:
+    """Check if a property dictionary requires an operator.
+
+    Args:
+        property (dict): The property dictionary to check.
+
+    Returns:
+        bool: True if the property type needs an operator."""
+    return property.get("type") not in ("cohort", "hogql")
