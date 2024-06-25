@@ -27,5 +27,12 @@ class HeatmapsTable(Table):
     def to_printed_clickhouse(self, context):
         return "heatmaps"
 
-    def to_printed_hogql(self):
+    def to_printed_hogql(self) -> str:
+        """Return the string representation 'heatmaps'.
+
+        Returns
+        -------
+        str
+            The string 'heatmaps'.
+        """
         return "heatmaps"
