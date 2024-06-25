@@ -1,3 +1,9 @@
+import re
+from typing import Any, Optional, Union
+
+from django.http import HttpRequest
+from rest_framework import authentication
+from rest_framework.request import Request
 import functools
 import re
 from datetime import timedelta
@@ -83,19 +89,22 @@ class PersonalAPIKeyAuthentication(authentication.BaseAuthentication):
         extra_data: Optional[dict[str, Any]] = None,
     ) -> Optional[tuple[str, str]]:
         """Try to find personal API key in request and return it along with where it was found."""
-        if "HTTP_AUTHORIZATION" in request.META:
-            authorization_match = re.match(rf"^{cls.keyword}\s+(\S.+)$", request.META["HTTP_AUTHORIZATION"])
-            if authorization_match:
-                return authorization_match.group(1).strip(), "Authorization header"
+        # Check for explicit 'Authorization' from request header at first
+        authorization = request.META.get("HTTP_AUTHORIZATION")
+        if authorization and authorization.startswith(cls.keyword):
+            return authorization[len(cls.keyword) :].strip(), "Authorization header"
+
+        # If 'request_data' is not given and 'request' is an instance of 'Request', then use 'request.data'
         data = request.data if request_data is None and isinstance(request, Request) else request_data
 
-        if data and "personal_api_key" in data:
-            return data["personal_api_key"], "body"
-        if "personal_api_key" in request.GET:
-            return request.GET["personal_api_key"], "query string"
-        if extra_data and "personal_api_key" in extra_data:
-            # compatibility with /capture endpoint
-            return extra_data["personal_api_key"], "query string data"
+        for key, value in [
+            ("personal_api_key", data),
+            ("personal_api_key", request.GET),
+            ("personal_api_key", extra_data),
+        ]:
+            if value and key in value:
+                return value[key], "body" if key is data else "query string data"
+
         return None
 
     @classmethod
