@@ -1,4 +1,6 @@
 import re
+from functools import lru_cache
+from typing import Dict, List
 
 from django.conf import settings
 from django.template import Library
@@ -25,24 +27,51 @@ def absolute_asset_url(path: str) -> str:
 
 
 @register.simple_tag
-def human_social_providers(providers: list[str]) -> str:
-    """
-    Returns a human-friendly name for a social login provider.
-    Example:
-      {% human_social_providers ["google-oauth2", "github"] %}
-      =>  "Google, GitHub"
+def human_social_providers(providers: List[str]) -> str:
+    """Converts a list of provider identifiers into human-friendly names.
+
+    Parameters
+    ----------
+    providers : list of str
+        The list of provider identifiers.
+
+    Returns
+    -------
+    str
+        The comma-separated human-friendly names of the providers.
     """
 
-    def friendly_provider(prov: str) -> str:
-        if prov == "google-oauth2":
-            return "Google"
-        elif prov == "github":
-            return "GitHub"
-        elif prov == "gitlab":
-            return "GitLab"
-        return "single sign-on (SAML)"
+    @lru_cache(None)
+    def build_provider_mapping() -> Dict[str, str]:
+        """Builds and caches the mapping dictionary for provider identifiers.
 
-    return ", ".join(map(friendly_provider, providers))
+        Returns
+        -------
+        dict
+            A dictionary mapping provider identifiers to human-friendly names.
+        """
+        return {"google-oauth2": "Google", "github": "GitHub", "gitlab": "GitLab", "saml": "single sign-on (SAML)"}
+
+    def precompute_provider_names(providers: List[str], mapping: Dict[str, str]) -> List[str]:
+        """Precomputes the human-friendly names for the input providers.
+
+        Parameters
+        ----------
+        providers : list of str
+            The list of provider identifiers.
+        mapping : dict of str to str
+            The mapping dictionary for provider identifiers.
+
+        Returns
+        -------
+        list of str
+            The human-friendly names of the providers.
+        """
+        return [mapping.get(provider, "single sign-on (SAML)") for provider in providers]
+
+    mapping = build_provider_mapping()
+    friendly_names = precompute_provider_names(providers, mapping)
+    return ", ".join(friendly_names)
 
 
 @register.simple_tag
