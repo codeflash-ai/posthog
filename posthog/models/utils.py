@@ -1,3 +1,4 @@
+from __future__ import annotations
 import secrets
 import string
 import uuid
@@ -259,9 +260,24 @@ class UniqueConstraintByExpression(BaseConstraint):
             expression=self.expression,
         )
 
-    def remove_sql(self, model, schema_editor):
+    def remove_sql(self, model: Any, schema_editor: Any) -> Statement:
+        """
+        Generate the SQL statement to drop the index.
+
+        Parameters
+        ----------
+        model : Any
+            The model associated with the constraint.
+        schema_editor : Any
+            The schema editor.
+
+        Returns
+        -------
+        Statement
+            The SQL drop statement.
+        """
         return Statement(
-            f"""
+            """
             DROP INDEX IF EXISTS %(name)s
             """,
             name=self.name,
