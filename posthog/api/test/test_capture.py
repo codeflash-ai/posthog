@@ -50,10 +50,38 @@ from posthog.settings import (
     KAFKA_EVENTS_PLUGIN_INGESTION_TOPIC,
 )
 from posthog.test.base import BaseTest
+import binascii
 
 
 def mocked_get_ingest_context_from_token(_: Any) -> None:
     raise Exception("test exception")
+
+
+def decode_base64_and_parse_json(data: str) -> dict[str, object]:
+    """
+    Decode a base64 encoded string and parse it as JSON.
+
+    Parameters
+    ----------
+    data : str
+        The base64 encoded string.
+
+    Returns
+    -------
+    dict[str, object]
+        The parsed JSON as a dictionary.
+
+    Raises
+    ------
+    ValueError
+        If there are issues in base64 decoding or JSON parsing.
+    """
+    try:
+        decoded_bytes = binascii.a2b_base64(data)
+        decoded_str = decoded_bytes.decode("utf-8")
+        return json.loads(decoded_str)
+    except (binascii.Error, UnicodeDecodeError, json.JSONDecodeError) as e:
+        raise ValueError(f"Decoding and parsing error: {e}")
 
 
 parser = ResolvingParser(
@@ -168,8 +196,26 @@ class TestCapture(BaseTest):
     def _dict_to_b64(self, data: dict) -> str:
         return base64.b64encode(json.dumps(data).encode("utf-8")).decode("utf-8")
 
-    def _dict_from_b64(self, data: str) -> dict:
-        return json.loads(base64.b64decode(data))
+    def _dict_from_b64(self, data: str) -> dict[str, object]:
+        """
+        Decode a base64 encoded string and parse it as a JSON dictionary.
+
+        Parameters
+        ----------
+        data : str
+            The base64 encoded string.
+
+        Returns
+        -------
+        dict[str, object]
+            The resulting JSON dictionary.
+
+        Raises
+        ------
+        ValueError
+            If there are issues in base64 decoding or JSON parsing.
+        """
+        return decode_base64_and_parse_json(data)
 
     def _to_arguments(self, patch_process_event_with_plugins: Any) -> dict:
         args = patch_process_event_with_plugins.call_args[1]["data"]
