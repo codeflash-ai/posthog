@@ -374,7 +374,9 @@ def negate_operator(operator: OperatorType) -> OperatorType:
         "is_date_before": "is_date_after",
         "is_date_after": "is_date_before",
         # is_date_exact not yet supported
-    }.get(operator, operator)  # type: ignore
+    }.get(
+        operator, operator
+    )  # type: ignore
 
 
 def prop_filter_json_extract(
@@ -728,10 +730,28 @@ def get_property_string_expr(
     return trim_quotes_expr(f"JSONExtractRaw({table_string}{column}, {var})"), False
 
 
-def box_value(value: Any, remove_spaces=False) -> list[Any]:
-    if not isinstance(value, list):
-        value = [value]
-    return [str(value).replace(" ", "") if remove_spaces else str(value) for value in value]
+def box_value(value: object, remove_spaces: bool = False) -> list[str]:
+    """Box a value into a list and convert all elements to strings.
+
+    Parameters
+    ----------
+    value : object
+        The value to be boxed into a list.
+    remove_spaces : bool, optional
+        If True, remove spaces from the string representation of each element.
+
+    Returns
+    -------
+    list[str]
+        A list of string representations of the original value(s).
+    """
+    values = [value] if not isinstance(value, list) else value
+    string_values = map(str, values)
+
+    if remove_spaces:
+        string_values = [s.replace(" ", "") for s in string_values]
+
+    return list(string_values)
 
 
 def filter_element(
