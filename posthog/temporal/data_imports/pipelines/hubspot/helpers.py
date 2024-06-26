@@ -8,12 +8,25 @@ from dlt.sources.helpers import requests
 import requests as http_requests
 from .settings import OBJECT_TYPE_PLURAL
 from .auth import refresh_access_token
+from functools import lru_cache
 
 BASE_URL = "https://api.hubapi.com/"
 
 
+@lru_cache(maxsize=512)  # Further increased cache size
 def get_url(endpoint: str) -> str:
-    """Get absolute hubspot endpoint URL"""
+    """Get absolute HubSpot endpoint URL with caching.
+
+    Parameters
+    ----------
+    endpoint : str
+        The relative endpoint to be appended to the base URL
+
+    Returns
+    -------
+    str
+        The absolute URL combining the base URL and endpoint, potentially fetched from cache.
+    """
     return urllib.parse.urljoin(BASE_URL, endpoint)
 
 
