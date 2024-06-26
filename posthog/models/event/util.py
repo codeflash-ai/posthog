@@ -165,7 +165,9 @@ def bulk_create_events(
                 %(created_at_{i})s,
                 %(_timestamp_{i})s,
                 0
-            )""".format(i=index)
+            )""".format(
+                i=index
+            )
         )
 
         #  use person properties mapping to populate person properties in given event
@@ -329,18 +331,38 @@ class ClickhouseEventSerializer(serializers.Serializer):
         dt = event["timestamp"].replace(tzinfo=timezone.utc)
         return dt.astimezone().isoformat()
 
-    def get_person(self, event):
-        if not self.context.get("people") or event["distinct_id"] not in self.context["people"]:
+    def get_person(self, event: dict[str, object]) -> dict[str, object] | None:
+        """Retrieve person details based on the event's distinct_id.
+
+        Parameters
+        ----------
+        event : dict
+            The event data containing distinct_id.
+
+        Returns
+        -------
+        dict | None
+            A dictionary with the person's data if found, otherwise None.
+        """
+        distinct_id = event["distinct_id"]
+        if cached_person := self._cache.get(distinct_id):
+            return cached_person
+
+        people = self.context.get("people")
+        if not people or distinct_id not in people:
+            self._cache[distinct_id] = None
             return None
 
-        person = self.context["people"][event["distinct_id"]]
-        return {
+        person = people[distinct_id]
+        result = {
             "is_identified": person.is_identified,
             "distinct_ids": person.distinct_ids[:1],  # only send the first one to avoid a payload bloat
             "properties": {
                 key: person.properties[key] for key in ["email", "name", "username"] if key in person.properties
             },
         }
+        self._cache[distinct_id] = result
+        return result
 
     def get_elements(self, event):
         if not event["elements_chain"]:
@@ -349,6 +371,11 @@ class ClickhouseEventSerializer(serializers.Serializer):
 
     def get_elements_chain(self, event):
         return event["elements_chain"]
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        """Initialize the serializer with context and cache"""
+        super().__init__(*args, **kwargs)
+        self._cache: dict[str, dict[str, object] | None] = {}
 
 
 def get_agg_event_count_for_teams(team_ids: list[Union[str, int]]) -> int:
