@@ -21,6 +21,7 @@ from posthog.models.event.sql import BULK_INSERT_EVENT_SQL, INSERT_EVENT_SQL
 from posthog.models.person import Person
 from posthog.models.team import Team
 from posthog.settings import TEST
+from functools import lru_cache
 
 ZERO_DATE = dt.datetime(1970, 1, 1)
 
@@ -165,7 +166,9 @@ def bulk_create_events(
                 %(created_at_{i})s,
                 %(_timestamp_{i})s,
                 0
-            )""".format(i=index)
+            )""".format(
+                i=index
+            )
         )
 
         #  use person properties mapping to populate person properties in given event
@@ -289,12 +292,26 @@ class ElementSerializer(serializers.ModelSerializer):
         ]
 
 
-def parse_properties(properties: str, allow_list: Optional[set[str]] = None) -> dict:
-    # parse_constants gets called for any NaN, Infinity etc values
-    # we just want those to be returned as None
+def parse_properties(properties: str, allow_list: Optional[set[str]] = None) -> dict[str, Any]:
+    """Parse properties from a JSON string, filtering by allowed keys.
+
+    Parameters
+    ----------
+    properties: str
+        JSON string representing properties.
+    allow_list: Optional[set[str]]
+        Set of keys to allow in the output dict. If None, all keys are allowed.
+
+    Returns
+    -------
+    dict[str, Any]
+        Filtered dictionary of properties.
+    """
+    if not properties:
+        return {}
     if allow_list is None:
         allow_list = set()
-    props = json.loads(properties or "{}", parse_constant=lambda x: None)
+    props = parse_json(properties)
     return {
         key: value.strip('"') if isinstance(value, str) else value
         for key, value in props.items()
@@ -428,3 +445,20 @@ def get_event_count_month_to_date() -> int:
     """
     )[0][0]
     return result
+
+
+@lru_cache(maxsize=128)
+def parse_json(properties: str) -> dict[str, Any]:
+    """Parse a JSON string, replacing special values with None.
+
+    Parameters
+    ----------
+    properties: str
+        JSON string to be parsed.
+
+    Returns
+    -------
+    dict[str, Any]
+        Parsed JSON data.
+    """
+    return json.loads(properties or "{}", parse_constant=lambda x: None)
