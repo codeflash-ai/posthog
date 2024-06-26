@@ -152,12 +152,14 @@ class QueryDateRange:
             return start.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
     def interval_relativedelta(self) -> relativedelta:
+        # Removed redundant check for better performance
+        interval_name = self._interval.name.lower()
         return relativedelta(
-            days=1 if self.interval_name == "day" else 0,
-            weeks=1 if self.interval_name == "week" else 0,
-            months=1 if self.interval_name == "month" else 0,
-            hours=1 if self.interval_name == "hour" else 0,
-            minutes=1 if self.interval_name == "minute" else 0,
+            days=1 if interval_name == "day" else 0,
+            weeks=1 if interval_name == "week" else 0,
+            months=1 if interval_name == "month" else 0,
+            hours=1 if interval_name == "hour" else 0,
+            minutes=1 if interval_name == "minute" else 0,
         )
 
     def all_values(self) -> list[datetime]:
