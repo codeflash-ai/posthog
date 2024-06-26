@@ -1,5 +1,6 @@
 import typing
 from abc import ABC, abstractmethod
+from typing import Any, Dict, List
 
 
 class PostHogWorkflow(ABC):
@@ -23,10 +24,20 @@ class PostHogWorkflow(ABC):
 
     @staticmethod
     @abstractmethod
-    def parse_inputs(inputs: list[str]) -> typing.Any:
+    def parse_inputs(inputs: List[str]) -> Dict[str, Any]:
         """Parse inputs from the management command CLI.
 
-        If a workflow is to be executed via the CLI it must know how to parse its
-        own inputs.
+        This method converts a list of string inputs from the CLI into a
+        structured dictionary that can be used within the workflow.
+
+        Parameters
+        ----------
+        inputs : list of str
+            String inputs provided via the CLI.
+
+        Returns
+        -------
+        dict of str to Any
+            Structured dictionary representation of parsed inputs.
         """
-        return NotImplemented
+        raise NotImplementedError
