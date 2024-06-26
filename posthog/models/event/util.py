@@ -165,7 +165,9 @@ def bulk_create_events(
                 %(created_at_{i})s,
                 %(_timestamp_{i})s,
                 0
-            )""".format(i=index)
+            )""".format(
+                i=index
+            )
         )
 
         #  use person properties mapping to populate person properties in given event
@@ -325,9 +327,27 @@ class ClickhouseEventSerializer(serializers.Serializer):
     def get_event(self, event):
         return event["event"]
 
-    def get_timestamp(self, event):
-        dt = event["timestamp"].replace(tzinfo=timezone.utc)
-        return dt.astimezone().isoformat()
+    def get_timestamp(self, event: dict[str, Any]) -> str:
+        """Convert event timestamp to ISO format with UTC timezone information.
+
+        Parameters
+        ----------
+        event : dict[str, Any]
+            A dictionary containing event data with a 'timestamp' key.
+
+        Returns
+        -------
+        str
+            The ISO formatted timestamp string.
+        """
+        timestamp = event.get("timestamp")
+
+        if timestamp.tzinfo is timezone.utc:
+            return timestamp.isoformat()
+
+        # Convert to UTC if not already
+        dt = timestamp.replace(tzinfo=timezone.utc)
+        return dt.isoformat()
 
     def get_person(self, event):
         if not self.context.get("people") or event["distinct_id"] not in self.context["people"]:
