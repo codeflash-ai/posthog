@@ -16,18 +16,28 @@ NAME_SEEDS = ["John", "Jane", "Alice", "Bob", ""]
 
 
 class TestOrganizationInvitesAPI(APIBaseTest):
-    def helper_generate_bulk_invite_payload(self, count: int):
-        payload = []
+    def helper_generate_bulk_invite_payload(self: "TestOrganizationInvitesAPI", count: int) -> list[dict[str, str]]:
+        """Generate a bulk invite payload.
 
-        for i in range(0, count):
-            payload.append(
-                {
-                    "target_email": f"test+{random.randint(1000000, 9999999)}@posthog.com",
-                    "first_name": NAME_SEEDS[i % len(NAME_SEEDS)],
-                }
-            )
+        Parameters
+        ----------
+        count : int
+            The number of invitations to generate.
 
-        return payload
+        Returns
+        -------
+        list[dict[str, str]]
+            A list of dictionaries, each representing an invite payload.
+        """
+        random_numbers = [random.randint(1000000, 9999999) for _ in range(count)]
+        name_length = len(NAME_SEEDS)
+        return [
+            {
+                "target_email": f"test+{random_numbers[i]}@posthog.com",
+                "first_name": NAME_SEEDS[i % name_length],
+            }
+            for i in range(count)
+        ]
 
     # Listing invites
 
