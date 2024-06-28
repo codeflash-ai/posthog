@@ -323,7 +323,7 @@ class CHQueries:
         finally:
             reset_query_tags()
 
-    def _get_param(self, request: HttpRequest, name: str):
+    def _get_param(self, request: HttpRequest, name: str) -> Optional[str]:
         if name in request.GET:
             return request.GET[name]
         if name in request.POST:
@@ -666,6 +666,14 @@ def get_impersonated_session_expires_at(request: HttpRequest) -> Optional[dateti
     init_time = get_or_set_session_cookie_created_at(request=request)
 
     return datetime.fromtimestamp(init_time) + timedelta(seconds=settings.IMPERSONATION_TIMEOUT_SECONDS)
+
+
+async def async_tag_queries(*args, **kwargs) -> None:
+    tag_queries(*args, **kwargs)
+
+
+async def async_reset_query_tags() -> None:
+    reset_query_tags()
 
 
 class AutoLogoutImpersonateMiddleware:
