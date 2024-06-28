@@ -93,7 +93,9 @@ redirect_count Int64,
 navigation_type LowCardinality(String),
 unload_event_end Float64,
 unload_event_start Float64,
-""".strip().rstrip(",")
+""".strip().rstrip(
+    ","
+)
 
 PERFORMANCE_EVENT_TABLE_ENGINE = lambda: MergeTreeEngine(
     "performance_events", replication_scheme=ReplicationScheme.SHARDED
@@ -140,20 +142,51 @@ KAFKA_PERFORMANCE_EVENTS_TABLE_SQL = lambda: PERFORMANCE_EVENTS_TABLE_BASE_SQL()
 
 
 def _clean_line(line: str) -> str:
-    return line.strip().strip(",").strip()
+    """Removes leading/trailing whitespaces and commas, performs the strip operations in one pass.
+
+    Parameters
+    ----------
+    line : str
+        The input string to clean.
+
+    Returns
+    -------
+    str
+        The cleaned string.
+    """
+    return line.strip(" ,")
 
 
 def _column_names_from_column_definitions(column_definitions: str) -> str:
-    """
-    this avoids manually duplicating column names from a string defining the columns earlier in the file
-    when creating the materialized view
-    """
-    column_names = []
-    for line in column_definitions.splitlines():
-        column_name = _clean_line(line).split(" ")[0]
-        column_names.append(column_name)
+    """Extracts column names from string definitions and concatenates them into a single string.
 
-    return ", ".join([cl for cl in column_names if cl])
+    Parameters
+    ----------
+    column_definitions : str
+        Multiline string containing column definitions.
+
+    Returns
+    -------
+    str
+        Comma-separated column names.
+    """
+    return ", ".join([line.split(" ")[0] for line in map(_clean_line, column_definitions.splitlines()) if line])
+
+
+def _clean_line(line: str) -> str:
+    """Removes leading/trailing whitespaces and commas, performs the strip operations in one pass.
+
+    Parameters
+    ----------
+    line : str
+        The input string to clean.
+
+    Returns
+    -------
+    str
+        The cleaned string.
+    """
+    return line.strip(" ,")
 
 
 DISTRIBUTED_PERFORMANCE_EVENTS_TABLE_SQL = lambda: PERFORMANCE_EVENTS_TABLE_BASE_SQL().format(
@@ -178,8 +211,7 @@ WRITABLE_PERFORMANCE_EVENTS_TABLE_SQL = lambda: PERFORMANCE_EVENTS_TABLE_BASE_SQ
     extra_fields=KAFKA_COLUMNS_WITH_PARTITION,
 )
 
-PERFORMANCE_EVENTS_TABLE_MV_SQL = (
-    lambda: """
+PERFORMANCE_EVENTS_TABLE_MV_SQL = lambda: """
 CREATE MATERIALIZED VIEW IF NOT EXISTS performance_events_mv ON CLUSTER '{cluster}'
 TO {database}.{target_table}
 AS SELECT
@@ -187,12 +219,11 @@ AS SELECT
 ,{extra_fields}
 FROM {database}.kafka_performance_events
 """.format(
-        columns=_column_names_from_column_definitions(PERFORMANCE_EVENT_COLUMNS),
-        target_table="writeable_performance_events",
-        cluster=settings.CLICKHOUSE_CLUSTER,
-        database=settings.CLICKHOUSE_DATABASE,
-        extra_fields=_column_names_from_column_definitions(KAFKA_COLUMNS_WITH_PARTITION),
-    )
+    columns=_column_names_from_column_definitions(PERFORMANCE_EVENT_COLUMNS),
+    target_table="writeable_performance_events",
+    cluster=settings.CLICKHOUSE_CLUSTER,
+    database=settings.CLICKHOUSE_DATABASE,
+    extra_fields=_column_names_from_column_definitions(KAFKA_COLUMNS_WITH_PARTITION),
 )
 
 # TODO this should probably be a materialized view
