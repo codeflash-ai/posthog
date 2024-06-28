@@ -72,7 +72,20 @@ def join_with_group_n_table(group_index: int):
 class RawGroupsTable(Table):
     fields: dict[str, FieldOrTable] = GROUPS_TABLE_FIELDS
 
-    def to_printed_clickhouse(self, context):
+    @staticmethod
+    def to_printed_clickhouse(context: object) -> str:
+        """Convert the object to its Clickhouse representation.
+
+        Parameters
+        ----------
+        context : object
+            The context for the conversion.
+
+        Returns
+        -------
+        str
+            The Clickhouse representation of the object.
+        """
         return "groups"
 
     def to_printed_hogql(self):
