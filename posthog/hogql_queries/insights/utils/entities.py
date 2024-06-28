@@ -1,15 +1,8 @@
-from posthog.schema import (
-    ActionsNode,
-    CohortPropertyFilter,
-    EmptyPropertyFilter,
-    EventsNode,
-    FunnelExclusionActionsNode,
-    FunnelExclusionEventsNode,
-    HogQLPropertyFilter,
-)
+from posthog.schema import ActionsNode, EventsNode, FunnelExclusionActionsNode, FunnelExclusionEventsNode
 from posthog.types import AnyPropertyFilter, EntityNode, ExclusionEntityNode
 from collections import Counter
 from rest_framework.exceptions import ValidationError
+from functools import lru_cache
 
 
 def is_equal_type(a: EntityNode, b: EntityNode | ExclusionEntityNode) -> bool:
@@ -76,13 +69,73 @@ def is_superset(a: EntityNode, b: EntityNode | ExclusionEntityNode) -> bool:
 
 
 def _sorted_property_reprs(properties: list[AnyPropertyFilter] | None) -> list[str]:
-    return sorted(_semantic_property_repr(prop) for prop in (properties or []) if _semantic_property_repr(prop) != "")
+    """Sort and generate string representations for property filters
+
+    Parameters
+    ----------
+    properties : list[AnyPropertyFilter] | None
+        List of property filters to process
+
+    Returns
+    -------
+    list[str]
+        Sorted string representation of property filters.
+    """
+    if properties is None:
+        return []
+    reprs = (_semantic_property_repr(prop) for prop in properties)
+    return sorted([rep for rep in reprs if rep])
 
 
+@lru_cache(maxsize=None)
 def _semantic_property_repr(property: AnyPropertyFilter) -> str:
-    if isinstance(property, EmptyPropertyFilter):
-        return ""
-    elif isinstance(property, HogQLPropertyFilter) or isinstance(property, CohortPropertyFilter):
-        return f"{property.type}: {property.key} {property.value}"
-    else:
-        return f"{property.type}: {property.key} {property.operator} {property.value}"
+    """Generate string representation for given property
+
+    Parameters
+    ----------
+    property : AnyPropertyFilter
+        The property to generate the string representation for
+
+    Returns
+    -------
+    str
+        String representation of the property
+    """
+    return _get_repr_format(property).format(
+        type=property.type, key=property.key, operator=getattr(property, "operator", ""), value=property.value
+    )
+
+
+def _get_repr_format(property: AnyPropertyFilter) -> str:
+    """Get the appropriate format string based on the property type
+
+    Parameters
+    ----------
+    property : AnyPropertyFilter
+        The property to get the representation format string for
+
+    Returns
+    -------
+    str
+        The format string for the given property type
+    """
+    return FORMAT_STRINGS.get(type(property), "{type}: {key} {operator} {value}")
+
+
+@lru_cache(maxsize=None)
+def _semantic_property_repr(property: AnyPropertyFilter) -> str:
+    """Generate string representation for given property
+
+    Parameters
+    ----------
+    property : AnyPropertyFilter
+        The property to generate the string representation for
+
+    Returns
+    -------
+    str
+        String representation of the property
+    """
+    return _get_repr_format(property).format(
+        type=property.type, key=property.key, operator=getattr(property, "operator", ""), value=property.value
+    )
