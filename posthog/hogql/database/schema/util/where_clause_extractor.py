@@ -597,5 +597,17 @@ def is_not_truthy(value):
     return value is False or value is None or value == 0
 
 
-def is_truthy(value):
-    return not is_not_truthy(value)
+def is_truthy(value: object) -> bool:
+    """Check if the value is truthy.
+
+    Parameters
+    ----------
+    value : object
+        The value to check.
+
+    Returns
+    -------
+    bool
+        True if the value is truthy, False otherwise.
+    """
+    return value is not False and value is not None and value != 0
