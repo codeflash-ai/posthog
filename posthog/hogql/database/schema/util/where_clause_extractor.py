@@ -359,6 +359,18 @@ class IsTimeOrIntervalConstantVisitor(Visitor[bool]):
         return True
 
     def visit_select_query(self, node: ast.SelectQuery) -> bool:
+        """Visit a SelectQuery node.
+
+        Parameters
+        ----------
+        node : ast.SelectQuery
+            The SelectQuery node to visit.
+
+        Returns
+        -------
+        bool
+            Always returns False.
+        """
         return False
 
     def visit_compare_operation(self, node: ast.CompareOperation) -> bool:
