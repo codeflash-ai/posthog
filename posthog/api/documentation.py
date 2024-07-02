@@ -1,4 +1,6 @@
 import re
+from typing import Any, Dict
+import re
 from typing import get_args
 
 from drf_spectacular.types import OpenApiTypes
@@ -213,42 +215,49 @@ def preprocess_exclude_path_format(endpoints, **kwargs):
     return result
 
 
-def custom_postprocessing_hook(result, generator, request, public):
-    all_tags = []
-    paths: dict[str, dict] = {}
+def custom_postprocessing_hook(result: Dict[str, Any], generator, request, public) -> Dict[str, Any]:
+    compiled_pattern = re.compile(r"((\/api\/(organizations|projects)/{(.*?)}\/)|(\/api\/))(?P<one>[a-zA-Z0-9-_]*)\/")
+    all_tags = set()
+
+    def transform_definition(definition, path):
+        # Remove "projects" from tags
+        definition["tags"] = [d for d in definition["tags"] if d not in ["projects"]]
+
+        # Match path using precompiled regex and append matched group to tags
+        match = compiled_pattern.search(path)
+        if match:
+            definition["tags"].append(match.group("one"))
+
+        # Update all_tags set
+        all_tags.update(definition["tags"])
+
+        # Update operationId
+        definition["operationId"] = (
+            definition["operationId"].replace("organizations_", "", 1).replace("projects_", "", 1)
+        )
+
+        # Update project_id parameter if present
+        if "parameters" in definition:
+            definition["parameters"] = [
+                {
+                    "in": "path",
+                    "name": "project_id",
+                    "required": True,
+                    "schema": {"type": "string"},
+                    "description": "Project ID of the project you're trying to access. To find the ID of the project, make a call to /api/projects/.",
+                }
+                if param["name"] == "project_id"
+                else param
+                for param in definition["parameters"]
+            ]
 
     for path, methods in result["paths"].items():
-        paths[path] = {}
         for method, definition in methods.items():
-            definition["tags"] = [d for d in definition["tags"] if d not in ["projects"]]
-            match = re.search(
-                r"((\/api\/(organizations|projects)/{(.*?)}\/)|(\/api\/))(?P<one>[a-zA-Z0-9-_]*)\/",
-                path,
-            )
-            if match:
-                definition["tags"].append(match.group("one"))
-            for tag in definition["tags"]:
-                all_tags.append(tag)
-            definition["operationId"] = (
-                definition["operationId"].replace("organizations_", "", 1).replace("projects_", "", 1)
-            )
-            if "parameters" in definition:
-                definition["parameters"] = [
-                    {
-                        "in": "path",
-                        "name": "project_id",
-                        "required": True,
-                        "schema": {"type": "string"},
-                        "description": "Project ID of the project you're trying to access. To find the ID of the project, make a call to /api/projects/.",
-                    }
-                    if param["name"] == "project_id"
-                    else param
-                    for param in definition["parameters"]
-                ]
-            paths[path][method] = definition
+            transform_definition(definition, path)
+
     return {
         **result,
         "info": {"title": "PostHog API", "version": None, "description": ""},
-        "paths": paths,
-        "x-tagGroups": [{"name": "All endpoints", "tags": sorted(set(all_tags))}],
+        "paths": result["paths"],
+        "x-tagGroups": [{"name": "All endpoints", "tags": sorted(all_tags)}],
     }
