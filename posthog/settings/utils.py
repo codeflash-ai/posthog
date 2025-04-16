@@ -32,10 +32,13 @@ def get_from_env(
 def get_list(text: str) -> list[str]:
     if not text:
         return []
-    return [item.strip() for item in text.split(",")]
+    elif " " in text:
+        return [item.strip() for item in text.split(",")]
+    else:
+        return text.split(",")
 
 
 def get_set(text: str) -> set[str]:
     if not text:
         return set()
-    return {item.strip() for item in text.split(",")}
+    return set(item.strip() for item in text.split(","))
